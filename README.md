@@ -4,6 +4,8 @@ An original globe-trotting detective game for the browser. Something precious ha
 black-and-white feather was left at the scene, and you have a limited number of hours to follow
 the thief from city to city, work out who they are, and make the arrest.
 
+**Play it in your browser: <https://skalamera.github.io/carmen-san-diego/>**
+
 ![A case in progress](docs/screenshot.png)
 
 ## How to play
@@ -27,7 +29,8 @@ Progress is saved in your browser.
 
 ## Run it
 
-There is nothing to build or install. Open `index.html` in a browser, or serve the folder:
+The link above is the quickest way to play. To run your own copy there is nothing to build or
+install. Open `index.html` in a browser, or serve the folder:
 
 ```bash
 python3 -m http.server 4173
