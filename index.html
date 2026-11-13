@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Bureau: The Magpie Ring Files</title>
+<meta name="description" content="An original globe-trotting detective game. Follow the clues from city to city, name the thief, and make the arrest before the trail goes cold.">
+<meta name="theme-color" content="#0c1220">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%230c1220'/%3E%3Crect x='3' y='3' width='10' height='10' fill='%232f7f68'/%3E%3Crect x='7' y='1' width='2' height='14' fill='%23ffb62e'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Front desk -->
+<div id="title" class="screen title">
+  <div class="title-card">
+    <canvas id="title-map" width="360" height="140" aria-hidden="true"></canvas>
+    <p class="kicker">Greenwich · on the zero line</p>
+    <h1 class="logo">Meridian Bureau</h1>
+    <p class="tag">The Magpie Ring Files. A globe-trotting detective game.</p>
+
+    <form id="start-form" autocomplete="off">
+      <label for="agent-name">Tracer name</label>
+      <div class="start-row">
+        <input id="agent-name" name="agent" maxlength="18" placeholder="Your name" spellcheck="false">
+        <button class="btn primary" id="btn-start" type="submit">Open your first case</button>
+      </div>
+    </form>
+    <p id="title-status" class="status"></p>
+
+    <details class="how">
+      <summary>How it works</summary>
+      <ol>
+        <li>Something precious has been stolen. Question witnesses in the city where it happened.</li>
+        <li>Their answers hint at where the thief went next: a currency, a flag, a language, a landmark. Fly there. A wrong turn costs hours.</li>
+        <li>Longer interviews also reveal details about the thief. Enter them in the dossier until only one member of the Ring fits, then request a warrant.</li>
+        <li>Catch up with the thief, warrant in hand, before the clock runs out.</li>
+      </ol>
+    </details>
+    <button class="link" id="btn-reset" type="button" hidden>Erase my file and start over</button>
+    <p class="fine">An original game. All characters, organisations and stolen goods are fictional. The geography is real.</p>
+  </div>
+</div>
+
+<!-- The desk -->
+<div id="game" class="screen" hidden>
+  <header class="bar">
+    <div class="brand">Meridian Bureau</div>
+    <div class="stat"><span id="stat-case"></span><span id="stat-rank"></span></div>
+    <div class="stat" id="stat-warrant"></div>
+    <div class="fuse">
+      <div class="fuse-text"><b id="stat-hours">0</b> hours until the trail goes cold</div>
+      <div class="fuse-track" aria-hidden="true"><div id="fuse-fill"></div></div>
+    </div>
+    <div class="bar-btns">
+      <button id="btn-sound" class="btn small" type="button" aria-pressed="true">Sound on</button>
+      <button id="btn-quit" class="btn small" type="button">Close file</button>
+    </div>
+  </header>
+
+  <main class="desk">
+    <section class="stage" aria-label="Where you are">
+      <div class="scene-wrap">
+        <canvas id="scene" width="320" height="180" role="img" aria-label="View of the city"></canvas>
+        <div class="plate">
+          <h1 id="city-name"></h1>
+          <p id="city-sub"></p>
+        </div>
+        <div class="clock" id="stat-local"></div>
+      </div>
+      <p id="city-blurb" class="blurb"></p>
+    </section>
+
+    <section class="wire" aria-label="Wire">
+      <h2>Wire</h2>
+      <div id="wire-body" aria-live="polite"></div>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="Case tools">
+      <button type="button" role="tab" id="tab-leads" data-tab="leads" aria-controls="panel-leads" aria-selected="true">Leads</button>
+      <button type="button" role="tab" id="tab-map" data-tab="map" aria-controls="panel-map" aria-selected="false" tabindex="-1">Map</button>
+      <button type="button" role="tab" id="tab-dossier" data-tab="dossier" aria-controls="panel-dossier" aria-selected="false" tabindex="-1">Dossier</button>
+      <button type="button" role="tab" id="tab-notebook" data-tab="notebook" aria-controls="panel-notebook" aria-selected="false" tabindex="-1">Notebook</button>
+      <button type="button" role="tab" id="tab-atlas" data-tab="atlas" aria-controls="panel-atlas" aria-selected="false" tabindex="-1">Atlas</button>
+    </div>
+
+    <section class="panel" id="panel-leads" role="tabpanel" aria-labelledby="tab-leads">
+      <p class="hint">Every conversation costs time. A quick word tells you where the thief was headed. A long interview often turns up something about the thief too.</p>
+      <div id="leads" class="leads"></div>
+    </section>
+
+    <section class="panel" id="panel-map" role="tabpanel" aria-labelledby="tab-map" hidden>
+      <div class="map-grid">
+        <div class="map-wrap">
+          <canvas id="map" width="360" height="140" role="img" aria-label="World map with today's departures"></canvas>
+          <div id="pins"></div>
+        </div>
+        <div class="depart">
+          <h3>Departures</h3>
+          <div id="dest-list"></div>
+          <button class="btn primary" id="btn-fly" type="button" disabled>Choose a destination</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-dossier" role="tabpanel" aria-labelledby="tab-dossier" hidden>
+      <div class="dossier-grid">
+        <div class="evidence">
+          <h3>Evidence</h3>
+          <p class="hint">Set what witnesses have told you. When exactly one suspect fits, a judge will sign.</p>
+          <div id="traits"></div>
+          <p id="match-status" class="match"></p>
+          <button class="btn primary" id="btn-warrant" type="button">Request warrant</button>
+          <p id="dossier-msg" class="msg-line" aria-live="polite"></p>
+        </div>
+        <div>
+          <h3>The Magpie Ring</h3>
+          <div id="suspects" class="suspects"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-notebook" role="tabpanel" aria-labelledby="tab-notebook" hidden>
+      <div id="notes" class="notes"></div>
+    </section>
+
+    <section class="panel" id="panel-atlas" role="tabpanel" aria-labelledby="tab-atlas" hidden>
+      <div class="atlas-tools">
+        <label class="sr" for="atlas-q">Search the atlas</label>
+        <input id="atlas-q" type="search" placeholder="Search: yen, Spanish, volcano, crescent…" autocomplete="off">
+        <label class="check"><input type="checkbox" id="atlas-only"> Today's departures only</label>
+      </div>
+      <div id="atlas" class="atlas"></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="modal" aria-labelledby="modal-title">
+  <p id="modal-stamp" class="stamp"></p>
+  <div class="modal-head">
+    <canvas id="modal-face" width="40" height="40" hidden aria-hidden="true"></canvas>
+    <h2 id="modal-title"></h2>
+  </div>
+  <div id="modal-body"></div>
+  <div id="modal-actions" class="actions"></div>
+</dialog>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
